@@ -1,0 +1,40 @@
+workflows:
+  macos-build:
+    name: 编译靶场工坊
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      xcode: latest
+    scripts:
+      - name: 编译
+        script: |
+          swift build -c release
+      - name: 打包
+        script: |
+          mkdir -p 靶场工坊.app/Contents/MacOS
+          mkdir -p 靶场工坊.app/Contents/Resources
+          cp .build/release/靶场工坊 靶场工坊.app/Contents/MacOS/靶场工坊
+          cat > 靶场工坊.app/Contents/Info.plist <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>靶场工坊</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.local.targetworkshop</string>
+              <key>CFBundleName</key>
+              <string>靶场工坊</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>13.0</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          codesign --force --deep --sign - 靶场工坊.app
+          zip -r 靶场工坊.zip 靶场工坊.app
+    artifacts:
+      - 靶场工坊.zip
