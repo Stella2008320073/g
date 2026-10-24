@@ -77,9 +77,6 @@ struct RangeView: View {
         }
         .onExitCommand { handleEsc() }
         .focusable()
-        .onKeyPress(.space) { fire(); return .handled }
-        .onKeyPress("r") { startReload(); return .handled }
-        .onKeyPress(.escape) { handleEsc(); return .handled }
     }
 
     var hudInfo: some View {
