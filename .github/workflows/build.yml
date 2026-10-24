@@ -1,0 +1,49 @@
+name: Build Mac App
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-13
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build
+      run: swift build -c release
+
+    - name: Package
+      run: |
+        mkdir -p 靶场工坊.app/Contents/MacOS
+        mkdir -p 靶场工坊.app/Contents/Resources
+        cp .build/release/靶场工坊 靶场工坊.app/Contents/MacOS/靶场工坊
+        cat > 靶场工坊.app/Contents/Info.plist <<'EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>靶场工坊</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.local.targetworkshop</string>
+            <key>CFBundleName</key>
+            <string>靶场工坊</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>13.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+        </dict>
+        </plist>
+        EOF
+        codesign --force --deep --sign - 靶场工坊.app
+
+    - name: Upload App
+      uses: actions/upload-artifact@v3
+      with:
+        name: 靶场工坊-APP
+        path: 靶场工坊.app
