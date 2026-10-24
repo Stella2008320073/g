@@ -16,12 +16,11 @@ struct TargetWorkshopApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("靶场工坊") {
+        WindowGroup {
             RootView(fps: fps, store: store, route: $route, weapons: weapons, attachments: attachments)
                 .frame(minWidth: 1320, minHeight: 820)
                 .preferredColorScheme(.dark)
         }
-        .windowStyle(.hiddenTitleBar)
     }
 }
 
