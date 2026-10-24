@@ -76,7 +76,8 @@ struct RangeView: View {
             reloadDuration = store.reloadTime(for: weapon, all: attachments)
         }
         .onExitCommand { handleEsc() }
-        .focusable()
+        // 兼容旧版本 macOS 的键盘监听
+        .modifier(KeyboardShortcuts(fire: fire, reload: startReload, esc: handleEsc))
     }
 
     var hudInfo: some View {
@@ -197,8 +198,25 @@ struct RangeView: View {
     }
 
     func exitRange() {
-        // 配置保持不变，直接返回改装台
         route = .workshop
+    }
+}
+
+// MARK: 兼容旧版本 macOS 的键盘按键
+struct KeyboardShortcuts: ViewModifier {
+    let fire: () -> Void
+    let reload: () -> Void
+    let esc: () -> Void
+
+    func body(content: Content) -> some View {
+        if #available(macOS 14.0, *) {
+            content
+                .onKeyPress(.space) { fire(); return .handled }
+                .onKeyPress("r") { reload(); return .handled }
+                .onKeyPress(.escape) { esc(); return .handled }
+        } else {
+            content
+        }
     }
 }
 
@@ -207,7 +225,6 @@ struct RangeBackdrop: View {
     let weapon: Weapon
     var body: some View {
         Canvas { c, size in
-            // 靶场墙 + 透视
             c.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(red: 0.05, green: 0.07, blue: 0.08)))
             var grid = Path()
             let horizon = size.height * 0.35
@@ -221,7 +238,6 @@ struct RangeBackdrop: View {
                 grid.move(to: CGPoint(x: 0, y: y)); grid.addLine(to: CGPoint(x: size.width, y: y))
             }
             c.stroke(grid, with: .color(Color(red: 0.3, green: 0.55, blue: 0.6).opacity(0.08)), lineWidth: 0.6)
-            // 远处靶纸
             for i in 0..<4 {
                 let x = size.width * (0.15 + 0.2 * CGFloat(i))
                 let w = size.width * 0.06
@@ -232,38 +248,31 @@ struct RangeBackdrop: View {
     }
 }
 
-// MARK: 人形假人靶（写实灰色轮廓）
+// MARK: 人形假人靶
 struct HumanTarget: View {
     let hits: [CGPoint]
     var body: some View {
         Canvas { c, size in
             let w = size.width, h = size.height
             var silhouette = Path()
-            // 头
             silhouette.addEllipse(in: CGRect(x: w * 0.36, y: 0, width: w * 0.28, height: h * 0.14))
-            // 颈
             silhouette.addRect(CGRect(x: w * 0.44, y: h * 0.13, width: w * 0.12, height: h * 0.04))
-            // 躯干
             silhouette.move(to: CGPoint(x: w * 0.28, y: h * 0.18))
             silhouette.addLine(to: CGPoint(x: w * 0.72, y: h * 0.18))
             silhouette.addLine(to: CGPoint(x: w * 0.66, y: h * 0.55))
             silhouette.addLine(to: CGPoint(x: w * 0.34, y: h * 0.55))
             silhouette.closeSubpath()
-            // 手臂
             silhouette.addRect(CGRect(x: w * 0.18, y: h * 0.2, width: w * 0.1, height: h * 0.32))
             silhouette.addRect(CGRect(x: w * 0.72, y: h * 0.2, width: w * 0.1, height: h * 0.32))
-            // 腿
             silhouette.addRect(CGRect(x: w * 0.36, y: h * 0.55, width: w * 0.12, height: h * 0.42))
             silhouette.addRect(CGRect(x: w * 0.52, y: h * 0.55, width: w * 0.12, height: h * 0.42))
             c.fill(silhouette, with: .linearGradient(Gradient(colors: [Color(white: 0.38), Color(white: 0.18)]),
                                                      startPoint: .init(x: 0.5, y: 0), endPoint: .init(x: 0.5, y: 1)))
             c.stroke(silhouette, with: .color(Color(white: 0.55)), lineWidth: 1)
-            // 分区线
             var zones = Path()
             zones.move(to: CGPoint(x: w * 0.3, y: h * 0.3)); zones.addLine(to: CGPoint(x: w * 0.7, y: h * 0.3))
             zones.move(to: CGPoint(x: w * 0.3, y: h * 0.42)); zones.addLine(to: CGPoint(x: w * 0.7, y: h * 0.42))
             c.stroke(zones, with: .color(Color(white: 0.5).opacity(0.4)), lineWidth: 0.5)
-            // 命中点
             for m in hits {
                 let pt = CGPoint(x: w * 0.5 + m.x, y: h * 0.45 + m.y)
                 c.fill(Path(ellipseIn: CGRect(x: pt.x - 2, y: pt.y - 2, width: 4, height: 4)), with: .color(Color.red.opacity(0.9)))
@@ -289,7 +298,7 @@ struct Crosshair: View {
     }
 }
 
-// MARK: 第一人称手持武器（写实矢量）
+// MARK: 第一人称手持武器
 struct FirstPersonWeapon: View {
     let weapon: Weapon
     let recoil: CGFloat
@@ -297,7 +306,6 @@ struct FirstPersonWeapon: View {
         Canvas { c, size in
             let w = size.width, h = size.height
             let accent = weapon.accent
-            // 枪身
             var gun = Path()
             gun.move(to: CGPoint(x: w * 0.55, y: h * 0.5))
             gun.addLine(to: CGPoint(x: w * 0.95, y: h * 0.42))
@@ -312,25 +320,21 @@ struct FirstPersonWeapon: View {
                                               startPoint: .init(x: 0, y: 0), endPoint: .init(x: 1, y: 1)))
             c.stroke(gun, with: .color(accent.opacity(0.95)), lineWidth: 1.5)
 
-            // 手部
             var hand = Path()
             hand.addRoundedRect(in: CGRect(x: w * 0.5, y: h * 0.66, width: w * 0.16, height: h * 0.22), cornerSize: CGSize(width: 10, height: 10))
             c.fill(hand, with: .linearGradient(Gradient(colors: [Color(red: 0.65, green: 0.5, blue: 0.4), Color(red: 0.45, green: 0.32, blue: 0.25)]),
                                                startPoint: .init(x: 0, y: 0), endPoint: .init(x: 0, y: 1)))
             c.stroke(hand, with: .color(Color(red: 0.3, green: 0.2, blue: 0.15)), lineWidth: 1)
-            // 手指
             for i in 0..<3 {
                 var f = Path()
                 f.addRoundedRect(in: CGRect(x: w * (0.52 + 0.04 * CGFloat(i)), y: h * 0.7, width: w * 0.03, height: h * 0.1), cornerSize: CGSize(width: 4, height: 4))
                 c.stroke(f, with: .color(Color(red: 0.3, green: 0.2, blue: 0.15).opacity(0.7)), lineWidth: 0.8)
             }
-            // 枪口火光
             if recoil > 0.1 {
                 var flash = Path()
                 flash.addEllipse(in: CGRect(x: w * 0.96, y: h * 0.42, width: 30, height: 24))
                 c.fill(flash, with: .color(Color(red: 1, green: 0.8, blue: 0.3).opacity(0.8)))
             }
-            // 高光
             var hl = Path()
             hl.move(to: CGPoint(x: w * 0.56, y: h * 0.52))
             hl.addLine(to: CGPoint(x: w * 0.94, y: h * 0.44))
