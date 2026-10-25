@@ -94,7 +94,7 @@ struct Attachment: Identifiable, Hashable {
 
 enum VisualVariant: String, Hashable {
     case `default`
-    case long, short, heavy, light, optic, grip, stock, mag, muzzle, laser, rail, blade, guard, handle, pommel, sheath
+    case long, short, heavy, light, optic, grip, stock, mag, muzzle, laser, rail, blade, `guard`, handle, pommel, sheath
 }
 
 // MARK: - 武器
